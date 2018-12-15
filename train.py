@@ -6,7 +6,7 @@ import torch.optim as optim
 
 torch.manual_seed(1)
 sentences, tags = ReadTrain()
-
+training_data = [(sentences, tags)]
 
 
 

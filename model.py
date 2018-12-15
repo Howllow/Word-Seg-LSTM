@@ -28,7 +28,7 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.hidden_dim = hidden_dim
         self.tag_num = len(tag_to_ix)
-        self.hidden, self.cell = self.init_hc()
+        self.hidden = self.init_h()
 
         self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=1,
@@ -37,12 +37,18 @@ class BiLSTM_CRF(nn.Module):
         self.hidden2tag = nn.Linear(hidden_dim, self.tag_num)
         self.transitions = nn.Parameter(torch.randn(self.tag_num, self.tag_num))
 
-    def init_hc(self):
+    def init_h(self):
         return (torch.randn(2, 1, self.hidden_dim),
                 torch.randn(2, 1, self.hidden_dim))
 
-    def LSTM_Out(self, sentence):
+    def Get_Emission(self, sentence):
         embeds = self.word_embeds(sentence).view(len(sentence), 1, -1)
-        self.hidden, self.cell = self.init_hc()
-        lstm_out, self.hidden, self.cell = self.lstm(embeds, self.hidden_dim)
+        self.hidden = self.init_h()
+        lstm_out, self.hidden = self.lstm(embeds, self.hidden_dim)
+        lstm_out = lstm_out.view(len(sentence), 2 * self.hidden_dim)
+        return self.hidden2tag(lstm_out)
+
+
+
+
 

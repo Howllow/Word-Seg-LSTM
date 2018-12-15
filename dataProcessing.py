@@ -5,7 +5,7 @@ def ReadTrain():
     tags = []
     with codecs.open("./train.txt", encoding='UTF-8') as f:
         lines = f.readlines()
-        lines.sort(key=lambda k:len(k) , reverse=False)
+        #lines.sort(key=lambda k:len(k) , reverse=False)
         tmp_tag = ''
         for i in range(0, lines.__len__()):
             tmp_sentence = lines[i]
