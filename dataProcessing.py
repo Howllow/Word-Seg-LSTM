@@ -5,7 +5,7 @@ def ReadTrain():
     tags = []
     with codecs.open("./train.txt", encoding='UTF-8') as f:
         lines = f.readlines()
-        lines.sort(key=lambda k:len(k) , reverse=False)
+        #lines.sort(key=lambda k:len(k) , reverse=False)
         tmp_tag = ''
         for i in range(0, lines.__len__()):
             tmp_sentence = lines[i]
@@ -29,7 +29,7 @@ def ReadTrain():
                 sentences.append(tmp_sentence[1:-1])
             else:
                 sentences.append(tmp_sentence[:-1])
-            tags.append(tmp_tag + 'F')
+            tags.append('G' + tmp_tag + 'F')
 
     with codecs.open("./newtrain.txt", 'w', encoding='UTF-8') as f:
         for i in range(0, sentences.__len__()):
