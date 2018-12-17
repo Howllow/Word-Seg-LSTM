@@ -74,7 +74,7 @@ class BiLSTM_CRF(nn.Module):
         feats = self.lstm_out(sentence)
         forward_log_score = self.crf_forward(feats)
         gold_score = self.score_sentence(feats, tags)
-        return gold_score - forward_log_score
+        return forward_log_score - gold_score
 
     def viterbi(self, feats):
         backpointers = []
@@ -98,11 +98,11 @@ class BiLSTM_CRF(nn.Module):
         path_score = terminal_var[0][best_tag_id]
 
         best_path = [best_tag_id]
-        for backptrs_t in backpointers:
+        for backptrs_t in reversed(backpointers):
             best_tag_id = backptrs_t[best_tag_id]
             best_path.append(best_tag_id)
-        best_path.reverse()
         best_path.pop()
+        best_path.reverse()
         return path_score, best_path
 
     def forward(self, sentence):
