@@ -5,38 +5,40 @@ def ReadTrain():
     tags = []
     with codecs.open("./train.txt", encoding='UTF-8') as f:
         lines = f.readlines()
-        #lines.sort(key=lambda k:len(k) , reverse=False)
+
+    for i in range(0, lines.__len__()):
+        lines[i] = lines[i].strip('\r\n')
+
+    for i in range(0, lines.__len__()):
         tmp_tag = ''
-        for i in range(0, lines.__len__()):
-            tmp_sentence = lines[i]
+        tmp_sentence = ''
+        if lines[i].__len__() < 2:
+            continue
+        for words in lines[i].split('  '):
+            tmp_sentence += words
+            if words.__len__() == 1:
+                tmp_tag += 'S'
+            elif words.__len__() > 1:
+                for j in range(0, words.__len__()):
+                    if not j:
+                        tmp_tag += 'B'
+                    elif j == words.__len__() - 1:
+                        tmp_tag += 'E'
+                    else:
+                        tmp_tag += 'M'
+        sentences.append(tmp_sentence)
+        tags.append(tmp_tag)
 
-            for words in tmp_sentence.split(' '):
-                if words == '\r\n':
-                    tmp_tag += 'F'
-                elif words.__len__() == 1:
-                    tmp_tag += 'S'
-                else:
-                    for j in range(0, words.__len__()):
-                        if not j:
-                            tmp_tag += 'B'
-                        elif j == words.__len__() - 1:
-                            tmp_tag += 'E'
-                        else:
-                            tmp_tag += 'M'
+    tags.sort(key=lambda x: len(x), reverse=False)
+    sentences.sort(key=lambda x: len(x), reverse=False)
 
-            tmp_sentence = lines[i].replace(' ', '')
-            if i < 155 and (tmp_sentence[0] == '“' or tmp_sentence[0] == '’'):
-                sentences.append(tmp_sentence[1:-1])
-            else:
-                sentences.append(tmp_sentence[:-1])
-            tags.append('G' + tmp_tag + 'F')
+    with codecs.open("./tagseq.txt", 'w', encoding='UTF-8') as f:
+        for i in range(10, tags.__len__()):
+            f.write(tags[i] + '\n')
 
-    with codecs.open("./newtrain.txt", 'w', encoding='UTF-8') as f:
-        for i in range(0, sentences.__len__()):
-            f.write(sentences[i])
-            f.write(tags[i] + '\r')
-
-    return sentences, tags
+    with codecs.open("./sentences.txt", 'w', encoding='UTF-8') as f:
+        for i in range(10, sentences.__len__()):
+            f.write(sentences[i] + '\n')
 
 ReadTrain()
 
