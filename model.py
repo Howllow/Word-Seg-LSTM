@@ -28,15 +28,15 @@ class BiLSTM_CRF(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=1,
                             bidirectional=True)
 
-        self.hidden2tag = nn.Linear(hidden_dim * 2, self.tag_num)
-        self.transitions = nn.Parameter(torch.randn(self.tag_num, self.tag_num))
+        self.hidden2tag = nn.Linear(hidden_dim * 2, self.tag_num).cuda()
+        self.transitions = nn.Parameter(torch.randn(self.tag_num, self.tag_num)).cuda()
 
         self.transitions.data[tag_to_ix['Start'], :] = -10000
         self.transitions.data[:, tag_to_ix['Stop']] = -10000
 
     def init_h(self):
-        return (torch.randn(2, 1, self.hidden_dim),
-                torch.randn(2, 1, self.hidden_dim))
+        return (torch.randn(2, 1, self.hidden_dim).cuda(),
+                torch.randn(2, 1, self.hidden_dim).cuda())
 
     def lstm_out(self, sentence):
         embeds = self.word_embeds(sentence).view(len(sentence), 1, -1)
@@ -46,7 +46,7 @@ class BiLSTM_CRF(nn.Module):
         return self.hidden2tag(lstm_out)
 
     def crf_forward(self, feats):
-        init_alphas = torch.full((1, self.tag_num), -10000.)
+        init_alphas = torch.full((1, self.tag_num), -10000.).cuda()
         init_alphas[0][self.tag_to_ix['Start']] = 0.
         forward_var = init_alphas
         for feat in feats:
@@ -56,14 +56,14 @@ class BiLSTM_CRF(nn.Module):
                 trans_score = self.transitions[next_tag].view(1, -1)
                 next_tag_var = forward_var + trans_score + emit_score
                 alphas_t.append(log_sum_exp(next_tag_var).view(1))
-            forward_var = torch.cat(alphas_t).view(1, -1)
+            forward_var = torch.cat(alphas_t).view(1, -1).cuda()
         terminal_var = forward_var + self.transitions[self.tag_to_ix['Stop']]
         alpha = log_sum_exp(terminal_var)
         return alpha
 
     def score_sentence(self, feats, tags):
-        score = torch.zeros(1)
-        tags = torch.cat([torch.tensor([self.tag_to_ix['Start']], dtype=torch.long), tags])
+        score = torch.zeros(1).cuda()
+        tags = torch.cat([torch.tensor([self.tag_to_ix['Start']], dtype=torch.long).cuda(), tags])
         for i, feat in enumerate(feats):
             score = score + \
                     self.transitions[tags[i + 1], tags[i]] + feat[tags[i + 1]]
@@ -78,7 +78,7 @@ class BiLSTM_CRF(nn.Module):
 
     def viterbi(self, feats):
         backpointers = []
-        init_vitvars = torch.full((1, self.tag_num), -10000.)
+        init_vitvars = torch.full((1, self.tag_num), -10000.).cuda()
         init_vitvars[0][self.tag_to_ix['Start']] = 0
         forward_var = init_vitvars
         for feat in feats:
@@ -90,7 +90,7 @@ class BiLSTM_CRF(nn.Module):
                 best_tag_id = argmax(next_tag_var)
                 backptrs_t.append(best_tag_id)
                 vitvars_t.append(next_tag_var[0][best_tag_id].view(1))
-            forward_var = (torch.cat(vitvars_t) + feat).view(1, -1)
+            forward_var = (torch.cat(vitvars_t) + feat).view(1, -1).cuda()
             backpointers.append(backptrs_t)
 
         terminal_var = forward_var + self.transitions[self.tag_to_ix['Stop']]

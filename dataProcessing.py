@@ -33,12 +33,12 @@ def ReadTrain():
     sentences.sort(key=lambda x: len(x), reverse=False)
 
     with codecs.open("./tagseq.txt", 'w', encoding='UTF-8') as f:
-        for i in range(10, tags.__len__()):
-            f.write(tags[i] + '\n')
+        for i in range(0, tags.__len__() - 10):
+            f.write(tags[len(tags) - 1 - i] + '\n')
 
     with codecs.open("./sentences.txt", 'w', encoding='UTF-8') as f:
-        for i in range(10, sentences.__len__()):
-            f.write(sentences[i] + '\n')
+        for i in range(0, sentences.__len__() - 10):
+            f.write(sentences[len(sentences) - 1 - i] + '\n')
 
 ReadTrain()
 
