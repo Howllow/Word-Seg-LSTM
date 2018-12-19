@@ -6,7 +6,7 @@ import torch.optim as optim
 import numpy as np
 
 embedding_dim = 6
-hidden_dim = 2
+hidden_dim = 256
 batch_size = 64
 line_end = '\r\n'
 
@@ -20,7 +20,7 @@ def get_idxseq(seq, to_ix):
             idx.append(to_ix[w])
         else:
             idx.append(to_ix['UNF'])
-    return torch.tensor(idx, dtype=torch.long)
+    return idx
 
 
 with codecs.open("./sentences.txt", 'r', encoding='UTF-8') as f:
@@ -43,7 +43,7 @@ for sentence, tags in training_data:
 
 word_to_ix['UNF'] = len(word_to_ix)
 
-tag_to_ix = {'B': 0, 'M': 1, 'E': 2, 'S': 3, 'Start': 4, 'Stop': 5}
+tag_to_ix = {'Pad': 0, 'B': 1, 'M': 2, 'E': 3, 'S': 4}
 
 
 batch_data = []
@@ -79,7 +79,7 @@ model = BiLSTM_CRF(word_to_ix.__len__(), tag_to_ix, embedding_dim, hidden_dim).c
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 
-for epoch in range(2):
+for epoch in range(10):
     print(epoch)
     for i in range(len(batch_data)):
         model.zero_grad()
@@ -87,25 +87,28 @@ for epoch in range(2):
         tag_batch = []
         for data in batch_data[i]:
             sen_batch.append(get_idxseq(data[0], word_to_ix))
-            tag_batch.append(torch.tensor([tag_to_ix[t] for t in data[1]], dtype=torch.long))
-        loss = model.neg_log(sen_batch.cuda(), tag_batch.cuda(), torch.tensor(mask[i], dtype = torch.long).cuda())
+            tag_batch.append([tag_to_ix[t] for t in data[1]])
+        loss = model.neg_log(sen_batch, tag_batch, torch.tensor(mask[i], dtype=torch.long).cuda())
         loss.backward()
         optimizer.step()
 
 torch.save(model.state_dict(), './params1.pkl')
 
 pre_res = []
-for i in range(len(test_data)):
+for i in range(10):
     sentence = test_data[i]
     sen_seq = get_idxseq(test_data[i], word_to_ix)
-    pre_seq = model(sen_seq.cuda())[1]
+    pre_seq = model(torch.tensor(sen_seq, dtype=torch.long).cuda())[0]
+    print(pre_seq)
+    print(len(pre_seq))
     tmp_seq = ''
     for j in range(len(pre_seq)):
-        if pre_seq[j] == 2 or pre_seq[j] == 3:
+        if pre_seq[j] == 3 or pre_seq[j] == 4:
             tmp_seq += sentence[j] + '  '
         else:
             tmp_seq += sentence[j]
     tmp_seq += line_end
+    print(tmp_seq)
     pre_res.append(tmp_seq)
 
 with codecs.open("./out.txt", 'w', encoding='UTF-8') as f:

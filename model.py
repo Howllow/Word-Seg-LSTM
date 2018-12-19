@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import codecs
 from torchcrf import CRF
 
 def argmax(vec):
@@ -25,26 +26,25 @@ class BiLSTM_CRF(nn.Module):
         self.hidden_dim = hidden_dim
         self.tag_num = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeds = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=1,
                             bidirectional=True)
         self.crf = CRF(self.tag_num)
-
-        self.transitions = nn.Parameter(torch.randn(self.tag_num, self.tag_num)).cuda()
-
-        self.transitions.data[tag_to_ix['Start'], :] = -10000
-        self.transitions.data[:, tag_to_ix['Stop']] = -10000
 
     def init_h(self, batch_size):
         return (torch.randn(2, batch_size, self.hidden_dim).cuda(),
                 torch.randn(2, batch_size, self.hidden_dim).cuda())
 
-    def lstm_out(self, embeds_packed, batch_size, batch_len):
-        self.hidden = self.init_h(batch_len)
-        lstm_out, self.hidden = self.lstm(embeds_packed, self.hidden)
-        hidden2tag = nn.Linear(self.hidden_dim * 2, batch_size, self.tag_num).cuda()
-
-        return hidden2tag(lstm_out)
+    def lstm_out(self, embeds_packed, batch_size=1):
+        self.hidden = self.init_h(batch_size)
+        hidden2tag = nn.Linear(self.hidden_dim * 2, self.tag_num).cuda()
+        if batch_size != 1:
+            lstm_out, self.hidden = self.lstm(embeds_packed, self.hidden)
+            unpacked = nn.utils.rnn.pad_packed_sequence(lstm_out)[0]
+        else:
+            embeds = self.word_embeds(embeds_packed).view(len(embeds_packed), 1, -1)
+            unpacked = self.lstm(embeds.view(len(embeds_packed), 1, -1), self.hidden)[0]
+        return hidden2tag(unpacked)
 
     '''def crf_forward(self, feats):
         init_alphas = torch.full((1, self.tag_num), -10000.).cuda()
@@ -74,16 +74,21 @@ class BiLSTM_CRF(nn.Module):
     def neg_log(self, sentence, tags, mask):
         batch_size = len(sentence)
         batch_max_len = len(sentence[0])
-        for i in range(batch_size):
-            zero = np.zeros(batch_max_len - len(sentence[i]))
-            sentence[i] = sentence[i] + zero
-
         seq_len = [len(seq) for seq in sentence]
         seq_len = torch.tensor(seq_len).cuda()
-        embeds = self.word_embeds(sentence)
+
+        for i in range(batch_size):
+            zero = list(np.zeros(batch_max_len - len(sentence[i])))
+            sentence[i] = sentence[i] + zero
+            tags[i] = tags[i] + zero
+
+        sentence = torch.tensor(sentence, dtype=torch.long).cuda()
+        tags = torch.tensor(tags, dtype=torch.long).cuda()
+        embeds = self.word_embeds(sentence).view(batch_max_len, batch_size, -1)
         sen_packed = nn.utils.rnn.pack_padded_sequence(embeds, seq_len)
-        emission = nn.utils.rnn.pad_packed_sequence(self.lstm_out(sen_packed, batch_size, batch_max_len))
-        return self.crf(emission, tags, mask = mask)
+        emission = self.lstm_out(sen_packed, batch_size)
+        return self.crf(emission.view(batch_max_len, batch_size, self.tag_num),
+                        tags.view(batch_max_len, batch_size), mask=mask.view(batch_max_len, batch_size))
 
     '''def viterbi(self, feats):
         backpointers = []
