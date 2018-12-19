@@ -15,10 +15,11 @@ def ReadTrain():
         if lines[i].__len__() < 2:
             continue
         for words in lines[i].split('  '):
-            tmp_sentence += words
+            if words != '  ':
+                tmp_sentence += words
             if words.__len__() == 1:
                 tmp_tag += 'S'
-            elif words.__len__() > 1:
+            elif words.__len__() > 1 and words != '  ':
                 for j in range(0, words.__len__()):
                     if not j:
                         tmp_tag += 'B'

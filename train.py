@@ -5,12 +5,12 @@ import random
 import torch.optim as optim
 import numpy as np
 
-embedding_dim = 6
+embedding_dim = 15
 hidden_dim = 256
 batch_size = 64
 line_end = '\r\n'
 
-torch.manual_seed(10)
+torch.manual_seed(50)
 training_data = []
 
 def get_idxseq(seq, to_ix):
@@ -43,7 +43,7 @@ for sentence, tags in training_data:
 
 word_to_ix['UNF'] = len(word_to_ix)
 
-tag_to_ix = {'Pad': 0, 'B': 1, 'M': 2, 'E': 3, 'S': 4}
+tag_to_ix = {'B': 0, 'M': 1, 'E': 2, 'S': 3}
 
 
 batch_data = []
@@ -75,40 +75,37 @@ for batch in batch_data:
         tmp_mask.append(list(one) + list(zero))
     mask.append(tmp_mask)
 
-model = BiLSTM_CRF(word_to_ix.__len__(), tag_to_ix, embedding_dim, hidden_dim).cuda()
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
+model = BiLSTM_CRF(word_to_ix.__len__(), tag_to_ix, embedding_dim, hidden_dim)#.cuda()
+optimizer = optim.ASGD(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 
-for epoch in range(10):
+for epoch in range(3):
     print(epoch)
-    for i in range(len(batch_data)):
+    for i in range(len(batch_data) - 1000, len(batch_data)):
         model.zero_grad()
         sen_batch = []
         tag_batch = []
         for data in batch_data[i]:
             sen_batch.append(get_idxseq(data[0], word_to_ix))
             tag_batch.append([tag_to_ix[t] for t in data[1]])
-        loss = model.neg_log(sen_batch, tag_batch, torch.tensor(mask[i], dtype=torch.long).cuda())
+        loss = model.neg_log(sen_batch, tag_batch, torch.tensor(mask[i], dtype=torch.long))#.cuda())
         loss.backward()
         optimizer.step()
 
 torch.save(model.state_dict(), './params1.pkl')
-
+print(model(torch.tensor(get_idxseq(sentences[len(sentences) - 1], word_to_ix), dtype=torch.long)))
 pre_res = []
-for i in range(10):
+for i in range(5):
     sentence = test_data[i]
     sen_seq = get_idxseq(test_data[i], word_to_ix)
-    pre_seq = model(torch.tensor(sen_seq, dtype=torch.long).cuda())[0]
-    print(pre_seq)
-    print(len(pre_seq))
+    pre_seq = model(torch.tensor(sen_seq, dtype=torch.long))[0]#.cuda())[0]
     tmp_seq = ''
     for j in range(len(pre_seq)):
-        if pre_seq[j] == 3 or pre_seq[j] == 4:
+        if pre_seq[j] == 2 or pre_seq[j] == 3:
             tmp_seq += sentence[j] + '  '
         else:
             tmp_seq += sentence[j]
     tmp_seq += line_end
-    print(tmp_seq)
     pre_res.append(tmp_seq)
 
 with codecs.open("./out.txt", 'w', encoding='UTF-8') as f:
