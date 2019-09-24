@@ -1,4 +1,13 @@
+"""
+@author:jinqingzhe
+@file: dataProcessing.py
+@time: 2019/12/25
+@contact: 1600012896@pku.edu.cn
+
+"""
+
 import codecs
+
 
 def ReadTrain():
     sentences = []
@@ -40,6 +49,7 @@ def ReadTrain():
     with codecs.open("./sentences.txt", 'w', encoding='UTF-8') as f:
         for i in range(0, sentences.__len__() - 10):
             f.write(sentences[len(sentences) - 1 - i] + '\n')
+
 
 ReadTrain()
 

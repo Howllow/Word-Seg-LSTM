@@ -1,13 +1,19 @@
+"""
+@author:jinqingzhe
+@file: traom.py
+@time: 2019/12/25
+@contact: 1600012896@pku.edu.cn
+
+"""
 from model import BiLSTM_CRF
 import codecs
 import torch
-import random
 import torch.optim as optim
 import numpy as np
 from torchcrf import CRF
 
 embedding_dim = 250
-hidden_dim = 512
+hidden_dim = 1024
 batch_size = 64
 line_end = '\r\n'
 
@@ -100,7 +106,7 @@ model = BiLSTM_CRF(word_to_ix.__len__(), tag_to_ix, embedding_dim, hidden_dim, c
 optimizer = optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-4)
 
 
-for epoch in range(15):
+for epoch in range(30):
     print(epoch)
     for i in range(len(batch_data)):
         model.zero_grad()
@@ -113,7 +119,7 @@ for epoch in range(15):
         loss.backward()
         print(loss)
         optimizer.step()
-    torch.save(model.state_dict(), './params4.pkl')
+    torch.save(model.state_dict(), './params5.pkl')
 print(crf.transitions.data)
 '''''
 model.load_state_dict(torch.load('./params3.pkl'))
@@ -148,7 +154,7 @@ for i in range(len(test_data)):
     pre_res.append(tmp_seq)
 
 
-with codecs.open("./out.txt", 'w', encoding='UTF-8') as f:
+with codecs.open("./big_out.txt", 'w', encoding='UTF-8') as f:
     for i in range(len(pre_res)):
         f.write(pre_res[i])
 

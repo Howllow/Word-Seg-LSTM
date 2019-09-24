@@ -1,7 +1,14 @@
+"""
+@author:jinqingzhe
+@file: model.py
+@time: 2019/12/25
+@contact: 1600012896@pku.edu.cn
+
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
-from torchcrf import CRF
 
 
 class BiLSTM_CRF(nn.Module):
